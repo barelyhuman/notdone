@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"flag"
 	"fmt"
 	"net/http"
 	"text/template"
@@ -22,6 +23,13 @@ var templateFS embed.FS
 var baseStyles string
 
 func main() {
+
+	var port = "3000"
+	flag.StringVar(&port, "port", "", "Port to run the server on")
+	flag.StringVar(&port, "p", "", "Port to run the server on")
+
+	flag.Parse()
+
 	r := mux.NewRouter()
 
 	godotenv.Load(".env")
@@ -124,13 +132,13 @@ func main() {
 
 	}).Methods("POST")
 
-	fmt.Println("Listening on :3000")
+	fmt.Printf("Listening on :%v", port)
 
 	csrfSecretToken := env.Get("CSRF_TOKEN", lib.CryptoRandomToken(32))
 
 	CSRF := csrf.Protect([]byte(csrfSecretToken), csrf.SameSite(csrf.SameSiteStrictMode), csrf.Path("/"), csrf.Secure(false))
 
-	err = http.ListenAndServe(":3000", CSRF(r))
+	err = http.ListenAndServe(":"+port, CSRF(r))
 
 	lib.Bail(err)
 }
