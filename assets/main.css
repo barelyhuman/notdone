@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind utilities;
+@tailwind components;
+
+body > main > section {
+  @apply mt-[100px] flex flex-col gap-4;
+}
+
+[x-cloak] { display: none !important; }

@@ -1,0 +1,113 @@
+{{define "Index" }}
+<!DOCTYPE html>
+<html lang="en" encoding="UTF-8">
+  {{template "GlobalHead" .}} {{$csrfField := .csrfField}}
+  <body>
+    <main class="max-w-3xl mx-auto p-3">
+      <section>
+        <div>
+          <div class="text-sm breadcrumbs">
+            <ul>
+              <li><a href="/">Lists</a></li>
+            </ul>
+          </div>
+        </div>
+        <form method="POST">
+          {{$csrfField}}
+          <div class="flex justify-end w-full gap-2 items-center">
+            <input
+              type="text"
+              class="flex-1 input input-bordered input-md"
+              placeholder="Add new list"
+              name="listName"
+            />
+            <button class="btn btn-primary btn-circle">
+              <svg
+                class="w-4 h-4"
+                xmlns="http://www.w3.org/2000/svg"
+                width="32"
+                height="32"
+                viewBox="0 0 15 15"
+              >
+                <path
+                  fill="currentColor"
+                  fill-rule="evenodd"
+                  d="M8 2.75a.5.5 0 0 0-1 0V7H2.75a.5.5 0 0 0 0 1H7v4.25a.5.5 0 0 0 1 0V8h4.25a.5.5 0 0 0 0-1H8V2.75Z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+        </form>
+        {{range .Lists}}
+        <div class="card card-compact card-bordered">
+          <div class="card-body">
+            <div class="flex justify-between items-center">
+              <h3 class="card-title">{{.Name}}</h3>
+              <div class="card-actions items-center justify-end">
+                <a href="/{{.ID}}" class="btn btn-sm">
+                  <p class="badge badge-neutral">{{len .Items}}</p>
+                  <svg
+                    class="w-4 h-4"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="32"
+                    height="32"
+                    viewBox="0 0 15 15"
+                  >
+                    <path
+                      fill="currentColor"
+                      fill-rule="evenodd"
+                      d="M8.146 3.146a.5.5 0 0 1 .708 0l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L11.293 8H2.5a.5.5 0 0 1 0-1h8.793L8.146 3.854a.5.5 0 0 1 0-.708Z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </a>
+                <div
+                  class="flex items-center h-full"
+                  x-cloak
+                  x-data="{ showDelete:false, confirmDelete(){this.showDelete=true; setTimeout(()=>{this.showDelete=false},3500)} }"
+                >
+                  <button
+                    type="button"
+                    class="btn-error btn btn-sm btn-circle"
+                    @click="confirmDelete()"
+                    x-show="!showDelete"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="w-4 h-4"
+                      width="32"
+                      height="32"
+                      viewBox="0 0 15 15"
+                    >
+                      <path
+                        fill="currentColor"
+                        fill-rule="evenodd"
+                        d="M5.5 1a.5.5 0 0 0 0 1h4a.5.5 0 0 0 0-1h-4ZM3 3.5a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 0 1H11v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4h-.5a.5.5 0 0 1-.5-.5ZM5 4h5v8H5V4Z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                  <form
+                    method="POST"
+                    class="flex items-center h-full"
+                    x-show="showDelete"
+                  >
+                    <input type="hidden" value="delete" name="_method" />
+                    <input type="hidden" value="{{.ID}}" name="listId" />
+                    {{$csrfField}}
+                    <button class="btn-error btn btn-sm" type="submit">
+                      Confirm Delete
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {{end}}
+      </section>
+    </main>
+  </body>
+</html>
+{{end}}
