@@ -8,8 +8,6 @@ import (
 	"github.com/barelyhuman/notdone/lib"
 )
 
-const filename = "./storage.json"
-
 type Storage struct {
 	rootPath    string
 	storagePath string

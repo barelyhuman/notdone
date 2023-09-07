@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
+	"path/filepath"
+	"syscall"
 	"text/template"
 
 	"github.com/barelyhuman/go/env"
@@ -14,6 +19,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/lucsky/cuid"
+	"github.com/sevlyar/go-daemon"
 )
 
 //go:embed templates/*.html templates/**/*.html
@@ -22,18 +28,80 @@ var templateFS embed.FS
 //go:embed dist/style.css
 var baseStyles string
 
+var (
+	stop   = make(chan struct{})
+	config = &lib.Config{}
+)
+
+var (
+	signal = flag.String("s", "", `Send signal to the daemon:
+  quit — graceful shutdown
+  stop — fast shutdown
+  reload — reloading the configuration file`)
+)
+
 func main() {
-
-	var port string
-	flag.StringVar(&port, "port", "", "Port to run the server on")
-	flag.StringVar(&port, "p", "", "Port to run the server on")
-
 	flag.Parse()
 
-	if len(port) == 0 {
-		port = "3000"
+	daemon.AddCommand(daemon.StringFlag(signal, "quit"), syscall.SIGQUIT, termSigHandler)
+	daemon.AddCommand(daemon.StringFlag(signal, "stop"), syscall.SIGTERM, termSigHandler)
+	daemon.AddCommand(daemon.StringFlag(signal, "reload"), syscall.SIGHUP, reloadSigHandler)
+
+	config = lib.LoadConfig()
+	cwd := lib.GetBaseDirectory()
+	processName := getProcessName()
+	pidName := filepath.Join(cwd, processName+".pid")
+	logName := filepath.Join(cwd, processName+".log")
+
+	daemonCtx := &daemon.Context{
+		PidFileName: pidName,
+		PidFilePerm: 0644,
+		LogFileName: logName,
+		LogFilePerm: 0640,
+		WorkDir:     cwd,
+		Umask:       027,
+		Args:        []string{},
 	}
 
+	if len(daemon.ActiveFlags()) > 0 {
+		d, err := daemonCtx.Search()
+		if err != nil {
+			log.Fatalf("Unable send signal to the daemon: %s", err.Error())
+		}
+		daemon.SendCommands(d)
+		return
+	}
+
+	d, err := daemonCtx.Reborn()
+	if err != nil {
+		log.Fatal("Unable to run: ", err)
+	}
+	if d != nil {
+		return
+	}
+
+	defer daemonCtx.Release()
+	go startServer()
+
+	err = daemon.ServeSignals()
+	lib.Bail(err)
+}
+
+func termSigHandler(sig os.Signal) error {
+	log.Println("terminating...")
+	stop <- struct{}{}
+	return daemon.ErrStop
+}
+
+func reloadSigHandler(sig os.Signal) error {
+	// TODO: reload config
+	config = lib.LoadConfig()
+	stop <- struct{}{}
+	go startServer()
+	return nil
+}
+
+func startServer() {
 	r := mux.NewRouter()
 
 	godotenv.Load(".env")
@@ -136,15 +204,27 @@ func main() {
 
 	}).Methods("POST")
 
-	fmt.Printf("Listening on :%v", port)
+	fmt.Printf("Listening on :%v", config.Port)
 
 	csrfSecretToken := env.Get("CSRF_TOKEN", lib.CryptoRandomToken(32))
 
 	CSRF := csrf.Protect([]byte(csrfSecretToken), csrf.SameSite(csrf.SameSiteStrictMode), csrf.Path("/"), csrf.Secure(false))
 
-	err = http.ListenAndServe(":"+port, CSRF(r))
+	h := &http.Server{Addr: ":" + config.Port, Handler: CSRF(r)}
 
-	lib.Bail(err)
+	go func() {
+		err := h.ListenAndServe()
+		if err != nil {
+			log.Printf("server failed to run: %s", err.Error())
+		}
+	}()
+
+	<-stop
+	h.Shutdown(context.Background())
+}
+
+func getProcessName() string {
+	return `notdone`
 }
 
 type ListItem struct {
