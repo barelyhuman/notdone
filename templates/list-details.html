@@ -45,7 +45,7 @@
           class="card card-bordered"
           x-data="{ showDelete:false, confirmDelete(){this.showDelete=true; setTimeout(()=>{this.showDelete=false},3500)} }"
         >
-          <div class="card-body" x-cloak>
+          <div class="card-body">
             <div class="flex gap-3 justify-between items-center">
               <input
                 type="checkbox"
@@ -57,7 +57,7 @@
                 class="checkbox"
               />
               <h3 class="card-title flex-1">{{.Content}}</h3>
-              <div x-show="!showDelete">
+              <div x-show="!showDelete" x-cloak>
                 <button
                   type="button"
                   class="btn-error btn btn-sm btn-circle"
@@ -80,7 +80,7 @@
                   </svg>
                 </button>
               </div>
-              <div x-show="showDelete">
+              <div x-show="showDelete" x-cloak>
                 <form method="POST">
                   <input type="hidden" value="delete" name="_method" />
                   <input type="hidden" value="{{.ID}}" name="taskId" />

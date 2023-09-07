@@ -46,7 +46,7 @@
               <h3 class="card-title">{{.Name}}</h3>
               <div class="card-actions items-center justify-end">
                 <a href="/{{.ID}}" class="btn btn-sm">
-                  <p class="badge badge-neutral">{{len .Items}}</p>
+                  <p class="badge badge-neutral">{{.CompletedItems}}/{{len .Items}}</p>
                   <svg
                     class="w-4 h-4"
                     xmlns="http://www.w3.org/2000/svg"

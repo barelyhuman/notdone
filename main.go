@@ -24,11 +24,15 @@ var baseStyles string
 
 func main() {
 
-	var port = "3000"
+	var port string
 	flag.StringVar(&port, "port", "", "Port to run the server on")
 	flag.StringVar(&port, "p", "", "Port to run the server on")
 
 	flag.Parse()
+
+	if len(port) == 0 {
+		port = "3000"
+	}
 
 	r := mux.NewRouter()
 
@@ -150,9 +154,10 @@ type ListItem struct {
 }
 
 type List struct {
-	ID    string     `json:"id"`
-	Name  string     `json:"name"`
-	Items []ListItem `json:"items"`
+	ID             string     `json:"id"`
+	Name           string     `json:"name"`
+	Items          []ListItem `json:"items"`
+	CompletedItems int        `json:"items.completed"`
 }
 
 func (l *List) FindTaskIndex(taskId string) int {
@@ -162,6 +167,17 @@ func (l *List) FindTaskIndex(taskId string) int {
 		}
 	}
 	return -1
+}
+
+func (l *List) UpdateCompleted() {
+	l.CompletedItems = 0
+	for _, li := range l.Items {
+		if !li.Marked {
+			continue
+		}
+
+		l.CompletedItems += 1
+	}
 }
 
 type AppData struct {
@@ -183,7 +199,14 @@ func (ad *AppData) AddList(name string) {
 		Name:  name,
 		Items: []ListItem{},
 	})
+	ad.RunComputedData()
 	ad.Save()
+}
+
+func (ad *AppData) RunComputedData() {
+	for i := range ad.Lists {
+		ad.Lists[i].UpdateCompleted()
+	}
 }
 
 func (ad *AppData) FindListIndex(listId string) int {
@@ -205,6 +228,7 @@ func (ad *AppData) AddItem(listId string, content string) {
 		Content: content,
 		Marked:  false,
 	})
+	ad.RunComputedData()
 	ad.Save()
 }
 
@@ -222,8 +246,8 @@ func (ad *AppData) DeleteTask(listId string, taskId string) {
 
 	ad.Lists[listIndex].Items = newList
 
+	ad.RunComputedData()
 	ad.Save()
-	ad.Load()
 }
 
 func (ad *AppData) ToggleMarked(listId string, taskId string) {
@@ -233,6 +257,7 @@ func (ad *AppData) ToggleMarked(listId string, taskId string) {
 		return
 	}
 	ad.Lists[listIndex].Items[taskIndex].Marked = !ad.Lists[listIndex].Items[taskIndex].Marked
+	ad.RunComputedData()
 	ad.Save()
 }
 
@@ -241,6 +266,6 @@ func (ad *AppData) DeleteList(listId string) {
 
 	ad.Lists = append(ad.Lists[:listIndex], ad.Lists[listIndex+1:]...)
 
+	ad.RunComputedData()
 	ad.Save()
-	ad.Load()
 }
