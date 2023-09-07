@@ -4,3 +4,5 @@ dist
 !.env.example
 storage.json
 /notdone
+/bin
+.DS_Store
